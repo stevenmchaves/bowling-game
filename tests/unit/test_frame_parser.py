@@ -1,6 +1,8 @@
 import pytest
 from bowling.frame_parser import FrameParser
 
+# Unit Tests for FrameParser class
+
 def test_converts_symbols_correctly():
     raw = [["1", "/"], ["X"], ["0", "5"]]
     expected = [[1, 9], [10], [0, 5]]

@@ -4,6 +4,8 @@ from bowling.frame_parser import FrameParser
 from bowling.bowling_rules_validator import BowlingRulesValidator
 from bowling.string import BowlingGame
 
+# Integration tests for the bowling game application
+
 @pytest.mark.parametrize(
     "raw_json, expected_score",
     [

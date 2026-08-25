@@ -1,6 +1,8 @@
 import pytest
 from main import main
 
+# Full End to End tests for the bowling game application.
+
 def test_successful_example_game(monkeypatch, capsys, example_game_input):
     inputs = iter([example_game_input])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))

@@ -124,19 +124,25 @@ def coach_response(question: str, frames: list[list[str]], score: int) -> str:
         strikes = analysis["strikes"]
         spares = analysis["spares"]
         open_frames = analysis["open_frames"]
+        strike_label = "strike" if strikes == 1 else "strikes"
+        spare_label = "spare" if spares == 1 else "spares"
+        open_label = "open frame" if open_frames == 1 else "open frames"
         if open_frames == 0:
             takeaway = (
-                "You closed every frame—excellent spare conversion. Your next opportunity is to turn "
-                "some of those spare chances into strikes by improving first-ball carry and pocket accuracy."
+                "You avoided open frames, which is great spare shooting. To raise your score, work on "
+                "getting more strikes by improving first-ball accuracy and pin carry."
             )
         else:
+            pins_left = analysis["pins_left_in_open_frames"]
+            pin_phrase = "pin" if pins_left == 1 else "pins"
             takeaway = (
-                f"You left {open_frames} open frame(s) and {analysis['pins_left_in_open_frames']} pin(s) standing "
-                "across them. Review those leaves first; spare conversion is the priority where a frame was left open."
+                f"The main opportunity is spare shooting: you had {open_frames} {open_label} and left "
+                f"{pins_left} {pin_phrase} standing in total. Practice picking up the common leaves "
+                "you missed, while aiming to leave fewer pins after your first ball."
             )
         return (
-            f"Your game was {score}: {strikes} strike frame(s), {spares} spare frame(s), and "
-            f"{open_frames} open frame(s). {takeaway}"
+            f"You scored {score}, with {strikes} {strike_label}, {spares} {spare_label}, "
+            f"and {open_frames} {open_label}. {takeaway}"
         )
 
     client = OpenAI(api_key=api_key, base_url=os.getenv("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"))

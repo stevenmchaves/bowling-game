@@ -67,6 +67,10 @@ def analyze_bowling_game(frames: list[list[str]]) -> dict[str, Any]:
                     if first < 10 and second > 0 and first + second < 10:
                         missed_spare_opportunities += 1
             else:
+                # A slash cannot immediately follow a strike in the 10th frame:
+                # the strike clears the rack, so the next roll is scored on a fresh rack.
+                if len(frame) >= 2 and frame[0] == "X" and frame[1] == "/":
+                    return {"valid": False, "error": "Frame 10: '/' cannot immediately follow a strike ('X'); the next roll starts a new rack.", "frame": 10}
                 # In the 10th frame, every X is a strike roll, including a fill ball
                 # after a spare or after a strike on the first ball.
                 strikes += sum(1 for roll in frame if roll == "X")

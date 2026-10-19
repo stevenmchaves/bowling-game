@@ -52,3 +52,20 @@ def test_fastapi_index_page_is_served():
 
     assert response.status_code == 200
     assert "Add Player" in response.text
+
+
+def test_fastapi_multiplayer_endpoint_defaults_blank_player_names():
+    response = client.post("/api/score", json={"players": [{"name": "  ", "frames": PERFECT_GAME}]})
+
+    assert response.status_code == 200
+    assert response.json()["players"][0]["name"] == "Player 1"
+    assert response.json()["players"][0]["score"] == 300
+
+
+def test_fastapi_multiplayer_endpoint_identifies_invalid_player():
+    invalid_frames = [["X"] for _ in range(9)] + [["X", "/", "X"]]
+    response = client.post("/api/score", json={"players": [{"name": "Casey", "frames": invalid_frames}]})
+
+    assert response.status_code == 400
+    assert "Player 'Casey'" in response.json()["detail"]
+    assert "cannot immediately follow a strike" in response.json()["detail"]

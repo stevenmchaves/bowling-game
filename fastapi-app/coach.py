@@ -11,6 +11,8 @@ Use the supplied game-analysis tool before giving advice. Never invent frame sco
 Explain scoring in plain language, identify the biggest opportunities first, and give 1-3 concrete practice suggestions.
 You can answer questions about score, strikes, spares, open frames, consistency, and what to practice next.
 If the game data is incomplete or invalid, say so rather than pretending the analysis is complete.
+Use natural singular and plural forms for every statistic: 1 strike, 2 strikes; 1 spare, 2 spares; 1 open frame, 2 open frames; 1 pin, 2 pins. Avoid constructions like 'strike frame(s)'.
+Do not recommend converting more spares when there are no open frames. Do not assume every open frame was a missed spare unless the roll data supports that.
 Keep responses concise unless the user asks for detail.
 """
 
@@ -67,11 +69,16 @@ def analyze_bowling_game(frames: list[list[str]]) -> dict[str, Any]:
                     if first < 10 and second > 0 and first + second < 10:
                         missed_spare_opportunities += 1
             else:
-                if frame[0] == "X":
-                    strikes += 1
-                elif len(frame) >= 2 and frame[1] == "/":
+                # A slash cannot immediately follow a strike in the 10th frame:
+                # the strike clears the rack, so the next roll is scored on a fresh rack.
+                if len(frame) >= 2 and frame[0] == "X" and frame[1] == "/":
+                    return {"valid": False, "error": "Frame 10: '/' cannot immediately follow a strike ('X'); the next roll starts a new rack.", "frame": 10}
+                # In the 10th frame, every X is a strike roll, including a fill ball
+                # after a spare or after a strike on the first ball.
+                strikes += sum(1 for roll in frame if roll == "X")
+                if frame[0] != "X" and len(frame) >= 2 and frame[1] == "/":
                     spares += 1
-                elif len(frame) >= 2:
+                elif frame[0] != "X" and len(frame) >= 2:
                     second = _roll_value(frame[1], first)
                     if first + second < 10:
                         opens += 1
@@ -115,15 +122,39 @@ TOOLS = [
 
 
 def coach_response(question: str, frames: list[list[str]], score: int) -> str:
+    # A 300 is a perfect game; never give generic spare-conversion advice for it.
+    if score == 300:
+        analysis = analyze_bowling_game(frames)
+        if (analysis.get("valid") and analysis.get("strikes") == 12 and analysis.get("spares") == 0 and analysis.get("open_frames") == 0):
+            return "A perfect 300 game—congratulations! You struck in every frame, including all three rolls in the 10th. That is the highest possible score. Keep trusting the same repeatable approach."
+
     api_key = os.getenv("AI_GATEWAY_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:
         analysis = analyze_bowling_game(frames)
         if not analysis.get("valid"):
             return f"I can coach this game once the score is valid. {analysis.get('error', '')}"
+        strikes = analysis["strikes"]
+        spares = analysis["spares"]
+        open_frames = analysis["open_frames"]
+        strike_label = "strike" if strikes == 1 else "strikes"
+        spare_label = "spare" if spares == 1 else "spares"
+        open_label = "open frame" if open_frames == 1 else "open frames"
+        if open_frames == 0:
+            takeaway = (
+                "You avoided open frames, which is great spare shooting. To raise your score, work on "
+                "getting more strikes by improving first-ball accuracy and pin carry."
+            )
+        else:
+            pins_left = analysis["pins_left_in_open_frames"]
+            pin_phrase = "pin" if pins_left == 1 else "pins"
+            takeaway = (
+                f"The main opportunity is spare shooting: you had {open_frames} {open_label} and left "
+                f"{pins_left} {pin_phrase} standing in total. Practice picking up the common leaves "
+                "you missed, while aiming to leave fewer pins after your first ball."
+            )
         return (
-            f"Your game is {score}. You had {analysis['strikes']} strikes, {analysis['spares']} spares, "
-            f"and {analysis['open_frames']} open frames. Your biggest immediate opportunity is to convert more spares "
-            f"and reduce pins left in open frames ({analysis['pins_left_in_open_frames']})."
+            f"You scored {score}, with {strikes} {strike_label}, {spares} {spare_label}, "
+            f"and {open_frames} {open_label}. {takeaway}"
         )
 
     client = OpenAI(api_key=api_key, base_url=os.getenv("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"))

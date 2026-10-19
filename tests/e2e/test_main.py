@@ -1,5 +1,8 @@
+import runpy
+
 import pytest
-from main import main
+from fastapi.testclient import TestClient
+from main import app, main
 
 # Full End to End tests for the bowling game application.
 
@@ -130,6 +133,38 @@ def test_open_frame_tenth_frame(monkeypatch, capsys, open_frame_tenth_input):
     assert " ROLLS:  8 /   4 3   7 1   X     X     7 /   5 4   1 3   9 /   6 0" in captured
     assert " SCORE:  14    21    29    56    76    91    100   104   120   126" in captured
 
+def test_fastapi_app_is_exposed_for_deployment():
+    client = TestClient(app)
+
+    response = client.get('/health')
+    assert response.status_code == 200
+    assert response.json() == {'status': 'ok'}
+
+    response = client.post('/api/score', json={'frames': [['X'], ['X'], ['X'], ['X'], ['X'], ['X'], ['X'], ['X'], ['X'], ['X', 'X', 'X']]})
+    assert response.status_code == 200
+    assert response.json()['score'] == 300
+
+    multiplayer = client.post('/api/score', json={'players': [
+        {'name': 'Alice', 'frames': [['8', '/'], ['5', '4'], ['9', '0'], ['X'], ['X'], ['5', '/'], ['5', '3'], ['6', '3'], ['9', '/'], ['9', '/', 'X']]},
+        {'name': 'Bob', 'frames': [['X'], ['7', '/'], ['9', '0'], ['X'], ['X'], ['5', '5'], ['7', '2'], ['8', '/'], ['9', '0'], ['X', 'X', 'X']]},
+    ]})
+    assert multiplayer.status_code == 200
+    assert multiplayer.json()['players'][0]['score'] == 149
+    assert multiplayer.json()['players'][1]['score'] == 177
+
+    empty_players = client.post('/api/score', json={'players': []})
+    assert empty_players.status_code == 400
+    assert "non-empty 'players' list" in empty_players.json()['detail']
+
+    bad_player_frames = client.post('/api/score', json={'players': [{'name': 'Alice', 'frames': 'bad'}]})
+    assert bad_player_frames.status_code == 400
+    assert "'frames' list" in bad_player_frames.json()['detail']
+
+    bad_single_frames = client.post('/api/score', json={'frames': 'bad'})
+    assert bad_single_frames.status_code == 400
+    assert "'frames' list or a 'players' list" in bad_single_frames.json()['detail']
+
+
 def test_no_input_failure_exits(monkeypatch, capsys):
     """Verifies No Input and terminates with an error code."""
     monkeypatch.setattr("builtins.input", lambda _: "")
@@ -140,6 +175,17 @@ def test_no_input_failure_exits(monkeypatch, capsys):
     assert exc_info.value.code == 1  # Error exit status code
     captured = capsys.readouterr().out
     assert "" in captured
+
+def test_json_decode_error_exits(monkeypatch, capsys):
+    monkeypatch.setattr("builtins.input", lambda _: "not-json")
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 2
+    captured = capsys.readouterr().out
+    assert "JSON Syntax Error" in captured
+
 
 def test_spare_first_roll_exits(monkeypatch, capsys, spare_first_roll_input):
     inputs = iter([spare_first_roll_input])
@@ -184,6 +230,19 @@ def test_frame_pin_count_exceeds_ten_without_spare(monkeypatch, capsys, frame_pi
     assert exc_info.value.code == 3 # Error exit status code on json.loads
     captured = capsys.readouterr().out
     assert "Input Rule Validation Failed -> Frame 2: Total pins knocked down cannot exceed 10 pins." in captured
+
+
+def test_main_module_entrypoint_runs_as_script(monkeypatch, capsys):
+    inputs = iter(['[["X"], ["X"], ["X"], ["X"], ["X"], ["X"], ["X"], ["X"], ["X"], ["X", "X", "X"]]'])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_module('main', run_name='__main__')
+
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr().out
+    assert 'Bowling Game Application' in captured
+    assert '300' in captured
 
 def test_extra_rolls_after_game_completed(monkeypatch, capsys, extra_rolls_game_completion_input):
     inputs = iter([extra_rolls_game_completion_input])

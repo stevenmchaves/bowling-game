@@ -38,3 +38,9 @@ def test_rejects_spare_on_first_roll():
     with pytest.raises(ValueError, match="cannot start with a spare"):
         FrameParser.parse_to_numbers([["/", "r"]])
 
+
+
+def test_rejects_slash_immediately_after_tenth_frame_strike():
+    frames = [["X"] for _ in range(9)] + [["X", "/", "X"]]
+    with pytest.raises(ValueError, match="cannot immediately follow a strike"):
+        FrameParser.parse_to_numbers(frames)

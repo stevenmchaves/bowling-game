@@ -33,6 +33,14 @@
       .scoreboard-header .cell:last-child, .scoreboard-row .cell:last-child { border-right: none; }
       .total-box { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; background: #f3f4f6; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-weight: 700; font-size: 1.1rem; }
       .total-box strong { font-size: 1.5rem; color: var(--accent); }
+      .coach-panel { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+      .coach-panel h2 { margin: 0 0 8px; color: var(--accent); }
+      .coach-panel p { color: var(--muted); }
+      .coach-form { display: flex; gap: 10px; flex-wrap: wrap; }
+      .coach-form input { flex: 1; min-width: 220px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font: inherit; }
+      .coach-form button { border: 0; border-radius: 8px; padding: 12px 18px; background: var(--accent); color: white; font: inherit; font-weight: 700; cursor: pointer; }
+      .coach-form button:disabled { opacity: 0.6; cursor: wait; }
+      .coach-answer { margin-top: 14px; padding: 14px; background: #f3f7ff; border: 1px solid var(--border); border-radius: 10px; white-space: pre-wrap; min-height: 48px; }
       @media (max-width: 900px) { .frame-grid, .scoreboard-header, .scoreboard-row { grid-template-columns: repeat(5, minmax(90px, 1fr)); } }
     </style>
   </head>
@@ -55,6 +63,16 @@
           <span>Total score</span>
           <strong id="total-score">0</strong>
         </div>
+
+        <section class="coach-panel" aria-labelledby="coach-title">
+          <h2 id="coach-title">AI Bowling Coach</h2>
+          <p>Ask for feedback on your current game, spare conversions, consistency, or what to practice next.</p>
+          <form id="coach-form" class="coach-form">
+            <input id="coach-question" type="text" placeholder="e.g. What should I focus on improving?" aria-label="Question for the bowling coach" required />
+            <button id="coach-submit" type="submit">Ask Coach</button>
+          </form>
+          <div id="coach-answer" class="coach-answer" aria-live="polite">Your coaching feedback will appear here.</div>
+        </section>
       </div>
     </div>
 
@@ -153,6 +171,33 @@
           messageEl.textContent = error.message;
         }
       }
+
+      const coachForm = document.getElementById('coach-form');
+      const coachQuestion = document.getElementById('coach-question');
+      const coachSubmit = document.getElementById('coach-submit');
+      const coachAnswer = document.getElementById('coach-answer');
+
+      coachForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = coachQuestion.value.trim();
+        if (!question) return;
+        coachSubmit.disabled = true;
+        coachAnswer.textContent = 'Thinking about your game…';
+        try {
+          const response = await fetch('/api/coach', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, frames: readFrames(), score: Number(totalScore.textContent) || 0 }),
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.detail || 'The coach could not answer right now.');
+          coachAnswer.textContent = payload.answer || 'No coaching feedback was returned.';
+        } catch (error) {
+          coachAnswer.textContent = error.message || 'Unable to contact the bowling coach.';
+        } finally {
+          coachSubmit.disabled = false;
+        }
+      });
 
       buildInputs();
       updateBoard();

@@ -32,10 +32,12 @@ class FrameParser:
                     # Handle strike
                     numerical_frame.append(10)
                 elif clean_char == "/":
-                    # Handle spare
+                    # A spare marker must follow a non-strike roll in the same rack.
+                    # In frame 10, an X resets the rack, so X / is invalid notation.
                     if j == 0:
-                        # A frame cannot start with a spare validation
                         raise ValueError(f"Frame {frame_num}: A frame cannot start with a spare ('/').")
+                    if frame_num == 10 and numerical_frame[j - 1] == 10:
+                        raise ValueError("Frame 10: '/' cannot immediately follow a strike ('X'); the next roll starts a new rack.")
                     prev_roll = numerical_frame[j - 1]
                     numerical_frame.append(10 - prev_roll)
                 elif clean_char.isdigit():

@@ -38,6 +38,7 @@ function buildScoreboard(frames) {
       if (frame.length === 2 && frame[0] + frame[1] > 10) throw new Error(`Frame ${frameNum}: Total pins knocked down cannot exceed 10 pins.`);
       if (frame[0] === 10 && frame.length > 1) throw new Error(`Frame ${frameNum}: A strike ('X') must stand alone in frames 1-9.`);
     } else {
+      if (cleanedFrames[i][0] === 'X' && cleanedFrames[i][1] === '/') throw new Error("Frame 10: '/' cannot immediately follow a strike ('X'); the next roll starts a new rack.");
       if (frame.length > 3) throw new Error('Frame 10: Final Frame cannot contain more than 3 rolls.');
       if (frame[0] === 10 && frame.length < 3) throw new Error('Frame 10: Getting a strike requires 2 additional bonus rolls.');
       if (frame[0] !== 10 && frame.length >= 2 && frame[0] + frame[1] === 10 && frame.length < 3) throw new Error('Frame 10: Getting a spare requires 1 additional bonus roll.');

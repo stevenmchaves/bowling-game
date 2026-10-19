@@ -35,3 +35,24 @@ h1 { margin-top: 0; margin-bottom: 8px; color: #1b4d9b; }
 .coach-answer p { white-space: pre-wrap; color: #374151; margin-bottom: 0; }
 @media (max-width: 900px) { .frame-grid, .scoreboard-header, .scoreboard-row { grid-template-columns: repeat(5, minmax(90px, 1fr)); } }
 @media (max-width: 640px) { .coach-form { flex-direction: column; } }
+
+
+.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.page-heading h1 { margin-bottom: 6px; }
+.page-heading .subtitle { margin-bottom: 0; }
+.players-list { display: grid; gap: 22px; }
+.player-panel h2 { margin: 8px 0 16px; color: #1b4d9b; }
+.player-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.player-name-label { font-weight: 700; color: #4b5563; }
+.player-name-input { min-width: 160px; max-width: 320px; flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 10px; }
+.primary-button, .secondary-button { border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-weight: 700; }
+.primary-button { background: #1b4d9b; color: #fff; white-space: nowrap; }
+.secondary-button { background: #e5e7eb; color: #1f2937; }
+.player-panel .frame-grid { overflow-x: auto; }
+.player-panel .scoreboard { overflow-x: auto; }
+.player-panel .coach-panel h3 { margin: 0 0 4px; color: #1b4d9b; }
+@media (max-width: 640px) {
+  .page-heading { align-items: flex-start; flex-direction: column; }
+  .player-heading { align-items: flex-start; }
+  .player-name-input { min-width: 100%; max-width: none; flex-basis: 100%; }
+}

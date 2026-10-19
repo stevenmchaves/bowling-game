@@ -68,3 +68,13 @@ def test_fallback_uses_correct_singular_grammar(monkeypatch):
     assert "1 spare," in answer
     assert "8 open frames" in answer
     assert "strike frame(s)" not in answer
+
+
+def test_300_score_without_twelve_strikes_is_not_called_perfect(monkeypatch):
+    monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    frames = [["5", "/"]] + [["X"] for _ in range(8)] + [["X", "X", "X"]]
+
+    answer = coach_response("How did I do?", frames, 300)
+
+    assert "perfect 300 game" not in answer.lower()

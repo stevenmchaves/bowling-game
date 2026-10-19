@@ -27,7 +27,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-s --cov=bowling --cov=main --cov-report=term-missing --cov-report=html"
+addopts = "-s --cov=bowling --cov=main --cov=fastapi_app --cov=coach --cov-report=term-missing --cov-report=html"
 
 [tool.vercel]
 entrypoint = "fastapi_app:app"

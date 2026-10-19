@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from main import game_pipeline
+from coach import coach_response
 
 app = FastAPI(title="Bowling Game FastAPI")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -18,6 +19,12 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 class ScoreRequest(BaseModel):
     frames: list[list[str]]
+
+
+class CoachRequest(BaseModel):
+    question: str
+    frames: list[list[str]]
+    score: int
 
 
 @app.get("/health")
@@ -48,5 +55,13 @@ def score_game(payload: ScoreRequest) -> dict:
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover - defensive API path
+    except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/coach")
+def coach(payload: CoachRequest) -> dict[str, str]:
+    try:
+        return {"answer": coach_response(payload.question, payload.frames, payload.score)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="The bowling coach is temporarily unavailable.") from exc

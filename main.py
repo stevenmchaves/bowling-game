@@ -1,9 +1,12 @@
 import json
 import sys
 
+from fastapi import FastAPI, HTTPException
+
 from bowling.frame_parser import FrameParser
 from bowling.bowling_rules_validator import BowlingRulesValidator
 from bowling.frame import BowlingGame
+
 
 def game_pipeline(raw_json: str) -> BowlingGame:
     """Parsing, validation, and scoring steps into pipeline.
@@ -18,12 +21,13 @@ def game_pipeline(raw_json: str) -> BowlingGame:
     raw_frames = json.loads(raw_json)
     # convert to numerical representation for validation and scoring
     numerical_game = FrameParser.parse_to_numbers(raw_frames)
-    
-    # Step 2: Input Rule Validation 
+
+    # Step 2: Input Rule Validation
     BowlingRulesValidator.validate_game(numerical_game)
-    
+
     # Step 3: Calculate Game Initial State
     return BowlingGame(raw_frames, numerical_game)
+
 
 def print_gameboard(game: BowlingGame):
     """
@@ -38,7 +42,7 @@ def print_gameboard(game: BowlingGame):
     scores = data["cumulative_scores"]
     # Extract the display frames for printing
     frames = data["display_frames"]
-    
+
     format_rolls = []
 
     for frame_index, f in enumerate(frames):
@@ -58,7 +62,7 @@ def print_gameboard(game: BowlingGame):
 
     # Score String padding
     score_line_list = []
-    
+
     for score_index, score in enumerate(scores):
         # Format the score for each frame, ensuring proper alignment and spacing
         if score_index < 9:
@@ -67,7 +71,7 @@ def print_gameboard(game: BowlingGame):
         else:
             # last frame - because of extra rolls
             score_line_list.append(f"{score:<5}")
-    
+
     # Create the final score line for printing
     final_score_line = " SCORE:  " + "  ".join(score_line_list)
 
@@ -79,13 +83,55 @@ def print_gameboard(game: BowlingGame):
     print(final_score_line.rstrip())
     print("\n" + "=" * 68)
 
+
+def _score_player(player_name: str, frames: list[list[str]]) -> dict:
+    game = game_pipeline(json.dumps(frames))
+    board = game.get_scoreboard_data()
+    return {
+        "name": player_name,
+        "score": game.score(),
+        "cumulative_scores": board["cumulative_scores"],
+        "display_frames": board["display_frames"],
+        "frames": game.raw_frames,
+    }
+
+
+app = FastAPI(title="Bowling Game")
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.post("/api/score")
+def score_game(payload: dict) -> dict:
+    if "players" in payload:
+        players = payload["players"]
+        if not isinstance(players, list) or not players:
+            raise HTTPException(status_code=400, detail="Request body must include a non-empty 'players' list.")
+        response = {"players": []}
+        for index, player in enumerate(players):
+            name = str(player.get("name") or f"Player {index + 1}")
+            frames = player.get("frames", [])
+            if not isinstance(frames, list):
+                raise HTTPException(status_code=400, detail=f"Player '{name}' must include a 'frames' list.")
+            response["players"].append(_score_player(name, frames))
+        return response
+
+    frames = payload.get("frames")
+    if not isinstance(frames, list):
+        raise HTTPException(status_code=400, detail="Request body must include a 'frames' list or a 'players' list.")
+    return _score_player("Player 1", frames)
+
+
 def main() -> None:
     """Main function to run the bowling game application."""
 
     # Print the application header
     print("=" * 27 + " Bowling Game Application " + "=" * 27 + "\n")
     print("*" * 80 + "\n")
-    
+
     try:
         # Prompt the user for input and process the bowling game
         user_raw = input("\nEnter your bowling frames JSON: ").strip()
@@ -98,10 +144,10 @@ def main() -> None:
         game_instance = game_pipeline(user_raw)
         # Print the final gameboard with scores
         print_gameboard(game_instance)
-        
+
         # Exit gracefully
         sys.exit(0)
-            
+
     except json.JSONDecodeError as e:
         # Handle JSON parsing errors and exit with a specific error code
         print(f"JSON Syntax Error: {e}")
@@ -110,6 +156,7 @@ def main() -> None:
         # Handle validation errors and exit with a specific error code``
         print(f"Input Rule Validation Failed -> {e}")
         sys.exit(3)
+
 
 if __name__ == "__main__":
     main()

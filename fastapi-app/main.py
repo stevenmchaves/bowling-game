@@ -2,6 +2,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -31,13 +32,13 @@ STATIC_DIR = APP_DIR / "static"
 
 
 class PlayerScoreRequest(BaseModel):
-    name: str | None = None
+    name: Optional[str] = None
     frames: list[list[str]]
 
 
 class ScoreRequest(BaseModel):
-    frames: list[list[str]] | None = None
-    players: list[PlayerScoreRequest] | None = None
+    frames: Optional[list[list[str]]] = None
+    players: Optional[list[PlayerScoreRequest]] = None
 
 
 class CoachRequest(BaseModel):

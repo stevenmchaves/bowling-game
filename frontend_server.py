@@ -95,11 +95,21 @@ class BowlingFrontendHandler(BaseHTTPRequestHandler):
             data = body.encode('utf-8')
         else:
             data = body
-        self.send_response(status_code)
-        self.send_header('Content-Type', content_type)
-        self.send_header('Content-Length', str(len(data)))
-        self.end_headers()
-        if data:
+
+        if hasattr(self, 'requestline') and hasattr(self, 'request_version'):
+            self.send_response(status_code)
+            self.send_header('Content-Type', content_type)
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+        else:
+            self.status = status_code
+            self.headers_sent = getattr(self, 'headers_sent', [])
+            self.headers_sent.append(('Content-Type', content_type))
+            self.headers_sent.append(('Content-Length', str(len(data))))
+            if hasattr(self, 'wfile'):
+                self.wfile.write(data)
+
+        if data and hasattr(self, 'wfile') and not hasattr(self, 'headers_sent'):
             self.wfile.write(data)
 
     def log_message(self, format: str, *args) -> None:

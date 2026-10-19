@@ -26,5 +26,4 @@ testpaths = ["tests"]
 addopts = "-s --cov=bowling --cov=main --cov-report=term-missing --cov-report=html"
 
 [tool.vercel]
-entrypoint = "main:app"
-
+entrypoint = "fastapi-app/main.py"

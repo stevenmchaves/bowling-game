@@ -120,10 +120,22 @@ def coach_response(question: str, frames: list[list[str]], score: int) -> str:
         analysis = analyze_bowling_game(frames)
         if not analysis.get("valid"):
             return f"I can coach this game once the score is valid. {analysis.get('error', '')}"
+        strikes = analysis["strikes"]
+        spares = analysis["spares"]
+        open_frames = analysis["open_frames"]
+        if open_frames == 0:
+            takeaway = (
+                "You closed every frame—excellent spare conversion. Your next opportunity is to turn "
+                "some of those spare chances into strikes by improving first-ball carry and pocket accuracy."
+            )
+        else:
+            takeaway = (
+                f"You left {open_frames} open frame(s) and {analysis['pins_left_in_open_frames']} pin(s) standing "
+                "across them. Review those leaves first; spare conversion is the priority where a frame was left open."
+            )
         return (
-            f"Your game is {score}. You had {analysis['strikes']} strikes, {analysis['spares']} spares, "
-            f"and {analysis['open_frames']} open frames. Your biggest immediate opportunity is to convert more spares "
-            f"and reduce pins left in open frames ({analysis['pins_left_in_open_frames']})."
+            f"Your game was {score}: {strikes} strike frame(s), {spares} spare frame(s), and "
+            f"{open_frames} open frame(s). {takeaway}"
         )
 
     client = OpenAI(api_key=api_key, base_url=os.getenv("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"))

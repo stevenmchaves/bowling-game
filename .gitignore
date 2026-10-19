@@ -219,3 +219,5 @@ __marimo__/
 
 *.out
 *.swp
+
+node_modules

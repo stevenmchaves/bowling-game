@@ -2,7 +2,7 @@ import pytest
 import json
 from bowling.frame_parser import FrameParser
 from bowling.bowling_rules_validator import BowlingRulesValidator
-from bowling.string import BowlingGame
+from bowling.frame import BowlingGame
 
 # Integration tests for the bowling game application
 

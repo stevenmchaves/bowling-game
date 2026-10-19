@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Bowling ball">
+  <circle cx="60" cy="60" r="46" fill="#1f2937"/>
+  <circle cx="60" cy="60" r="38" fill="#3b82f6" opacity="0.9"/>
+  <circle cx="46" cy="48" r="7" fill="#dbeafe" opacity="0.8"/>
+  <circle cx="70" cy="76" r="6" fill="#dbeafe" opacity="0.8"/>
+  <circle cx="72" cy="46" r="5" fill="#dbeafe" opacity="0.8"/>
+  <circle cx="46" cy="76" r="5" fill="#dbeafe" opacity="0.8"/>
+  <path d="M24 38c9-16 28-20 42-11" stroke="#dbeafe" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+</svg>

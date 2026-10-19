@@ -3,7 +3,7 @@ import sys
 
 from bowling.frame_parser import FrameParser
 from bowling.bowling_rules_validator import BowlingRulesValidator
-from bowling.string import BowlingGame
+from bowling.frame import BowlingGame
 
 def game_pipeline(raw_json: str) -> BowlingGame:
     """Parsing, validation, and scoring steps into pipeline.
@@ -14,7 +14,7 @@ def game_pipeline(raw_json: str) -> BowlingGame:
     Raises:
         ValueError: If the input JSON is invalid or does not conform to bowling rules.
     """
-    # Step 1: String Parsing
+    # Step 1: Frame Parsing
     raw_frames = json.loads(raw_json)
     # convert to numerical representation for validation and scoring
     numerical_game = FrameParser.parse_to_numbers(raw_frames)

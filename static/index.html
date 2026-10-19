@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bowling Game</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --accent: #1b4d9b;
+        --accent-soft: #eaf2ff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --danger: #b91c1c;
+        --border: #d8dee7;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(180deg, #eef5ff, var(--bg));
+        color: var(--text);
+      }
+      .page { max-width: 1280px; margin: 40px auto; padding: 0 16px 32px; }
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+        padding: 16px 22px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand img { width: 64px; height: 64px; }
+      .brand h1 { margin: 0; color: var(--accent); }
+      .brand small { display: block; color: var(--muted); }
+      .action-bar { display: flex; gap: 10px; align-items: center; }
+      button {
+        background: var(--accent); color: white; border: none; border-radius: 10px; padding: 10px 18px; font-size: 1rem; cursor: pointer;
+      }
+      button.secondary { background: #e5e7eb; color: var(--text); }
+      .player-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 18px;
+      }
+      .player-card {
+        background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05); padding: 18px;
+      }
+      .player-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+      .player-head .name-wrap { display: flex; align-items: center; gap: 10px; }
+      .player-head .name-wrap img { width: 28px; height: 28px; }
+      .player-head input {
+        width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 1rem;
+      }
+      .pill {
+        background: var(--accent-soft); color: var(--accent); border: 1px solid #d3def7; border-radius: 999px;
+        display: inline-flex; align-items: center; justify-content: center; min-width: 78px; padding: 8px 10px; font-weight: 700;
+      }
+      .frame-grid {
+        display: grid; grid-template-columns: repeat(5, minmax(46px, 1fr)); gap: 8px;
+        margin-bottom: 16px;
+      }
+      .frame-box {
+        background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 6px 2px; text-align: center;
+      }
+      .frame-box label {
+        display: block; font-size: 0.72rem; font-weight: 700; color: var(--muted); margin-bottom: 6px;
+      }
+      .roll-row { display: flex; gap: 6px; justify-content: center; }
+      .roll-input {
+        width: 26px; height: 32px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-weight: 700;
+      }
+      .message { min-height: 24px; color: var(--danger); font-weight: 700; margin: 16px 0; }
+      .leaderboard { margin-top: 20px; display: grid; gap: 12px; }
+      .leaderboard-card {
+        background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 10px 18px rgba(15, 23, 42, 0.04);
+      }
+      .leaderboard-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .leaderboard-head strong { font-size: 1.1rem; }
+      .board-grid {
+        display: grid; grid-template-columns: repeat(10, minmax(50px, 1fr)); gap: 6px;
+      }
+      .cell {
+        border: 1px solid var(--border); border-radius: 8px; min-height: 52px; display: flex; align-items: center; justify-content: center; background: #f8fafc; font-weight: 700;
+      }
+      .cell.score { color: var(--accent); }
+      .score-total { font-size: 1.2rem; color: var(--accent); font-weight: 800; }
+      @media (max-width: 760px) {
+        .topbar { flex-direction: column; align-items: flex-start; }
+        .player-grid { grid-template-columns: 1fr; }
+        .frame-grid { grid-template-columns: repeat(5, minmax(32px, 1fr)); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <div class="brand">
+          <img src="/bowling-ball.svg" alt="Bowling ball" />
+          <div>
+            <h1>Bowling Scoreboard</h1>
+            <small>Track each player’s frame-by-frame score</small>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button id="add-player" type="button">+ Add Player</button>
+          <button id="score-game" class="secondary" type="button">Score Game</button>
+        </div>
+      </div>
+
+      <div id="players" class="player-grid"></div>
+      <div id="message" class="message" aria-live="polite"></div>
+      <div id="leaderboard" class="leaderboard"></div>
+    </div>
+
+    <script>
+      const defaultFrames = [
+        ['8', '/'], ['5', '4'], ['9', '0'], ['X'], ['X'], ['5', '/'], ['5', '3'], ['6', '3'], ['9', '/'], ['9', '/', 'X']
+      ];
+
+      let players = [
+        { name: 'Player 1', frames: defaultFrames },
+        { name: 'Player 2', frames: [['9', '/'], ['5', '5'], ['7', '1'], ['X'], ['8', '/', '9'], ['6', '3'], ['X'], ['9', '0'], ['X'], ['7', '/', 'X']] }
+      ];
+
+      const playersEl = document.getElementById('players');
+      const leaderboardEl = document.getElementById('leaderboard');
+      const messageEl = document.getElementById('message');
+
+      function normalizeToken(value) {
+        return String(value ?? '').trim().toUpperCase().replace(/[^0-9X/]/g, '').slice(0, 1);
+      }
+
+      function createBlankPlayer(name = `Player ${players.length + 1}`) {
+        return {
+          name,
+          frames: Array.from({ length: 10 }, () => [])
+        };
+      }
+
+      function renderPlayers() {
+        playersEl.innerHTML = '';
+        players.forEach((player, playerIndex) => {
+          const card = document.createElement('div');
+          card.className = 'player-card';
+
+          const head = document.createElement('div');
+          head.className = 'player-head';
+
+          const nameWrap = document.createElement('div');
+          nameWrap.className = 'name-wrap';
+
+          const icon = document.createElement('img');
+          icon.src = '/bowling-pin.svg';
+          icon.alt = 'Bowling pin';
+
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.value = player.name;
+          nameInput.placeholder = `Player ${playerIndex + 1}`;
+          nameInput.addEventListener('input', (event) => {
+            players[playerIndex].name = event.target.value || `Player ${playerIndex + 1}`;
+          });
+
+          nameWrap.appendChild(icon);
+          nameWrap.appendChild(nameInput);
+
+          const scoreBadge = document.createElement('div');
+          scoreBadge.className = 'pill';
+          scoreBadge.textContent = 'Ready';
+
+          head.appendChild(nameWrap);
+          head.appendChild(scoreBadge);
+
+          const frameGrid = document.createElement('div');
+          frameGrid.className = 'frame-grid';
+
+          for (let frameIndex = 0; frameIndex < 10; frameIndex += 1) {
+            const frameBox = document.createElement('div');
+            frameBox.className = 'frame-box';
+            const frameLabel = document.createElement('label');
+            frameLabel.textContent = `${frameIndex + 1}`;
+            const rolls = document.createElement('div');
+            rolls.className = 'roll-row';
+            const maxRolls = frameIndex === 9 ? 3 : 2;
+
+            for (let rollIndex = 0; rollIndex < maxRolls; rollIndex += 1) {
+              const input = document.createElement('input');
+              input.type = 'text';
+              input.className = 'roll-input';
+              input.maxLength = 1;
+              input.value = player.frames[frameIndex]?.[rollIndex] ?? '';
+              input.addEventListener('input', (event) => {
+                const nextValue = normalizeToken(event.target.value);
+                event.target.value = nextValue;
+                const current = players[playerIndex].frames[frameIndex] ?? [];
+                current[rollIndex] = nextValue;
+                players[playerIndex].frames[frameIndex] = current;
+              });
+              rolls.appendChild(input);
+            }
+
+            frameBox.appendChild(frameLabel);
+            frameBox.appendChild(rolls);
+            frameGrid.appendChild(frameBox);
+          }
+
+          const removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'secondary';
+          removeButton.textContent = 'Remove';
+          removeButton.onclick = () => {
+            if (players.length > 1) {
+              players.splice(playerIndex, 1);
+              renderPlayers();
+            }
+          };
+
+          card.appendChild(head);
+          card.appendChild(frameGrid);
+          card.appendChild(removeButton);
+          playersEl.appendChild(card);
+        });
+      }
+
+      function renderLeaderboard(results) {
+        leaderboardEl.innerHTML = '';
+        if (!Array.isArray(results) || results.length === 0) return;
+
+        results.forEach((result) => {
+          const card = document.createElement('div');
+          card.className = 'leaderboard-card';
+
+          const head = document.createElement('div');
+          head.className = 'leaderboard-head';
+
+          const label = document.createElement('strong');
+          label.textContent = result.name;
+
+          const total = document.createElement('span');
+          total.className = 'score-total';
+          total.textContent = `${result.score} pts`;
+
+          head.appendChild(label);
+          head.appendChild(total);
+          card.appendChild(head);
+
+          const boardGrid = document.createElement('div');
+          boardGrid.className = 'board-grid';
+
+          for (let i = 0; i < 10; i += 1) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.textContent = (result.display_frames[i] || []).join(' ') || '—';
+            boardGrid.appendChild(cell);
+          }
+
+          const scoreRow = document.createElement('div');
+          scoreRow.className = 'board-grid';
+          for (let i = 0; i < 10; i += 1) {
+            const cell = document.createElement('div');
+            cell.className = 'cell score';
+            cell.textContent = result.cumulative_scores[i] ?? '';
+            scoreRow.appendChild(cell);
+          }
+
+          card.appendChild(boardGrid);
+          card.appendChild(scoreRow);
+          leaderboardEl.appendChild(card);
+        });
+      }
+
+      async function scoreGame() {
+        messageEl.textContent = '';
+        const payload = {
+          players: players.map((player, index) => ({
+            name: player.name || `Player ${index + 1}`,
+            frames: player.frames.map((frame) => frame.filter(Boolean))
+          }))
+        };
+
+        try {
+          const response = await fetch('/api/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || 'Unable to score the game.');
+          }
+
+          renderLeaderboard(result.players || [result]);
+        } catch (error) {
+          messageEl.textContent = error.message;
+        }
+      }
+
+      document.getElementById('add-player').addEventListener('click', () => {
+        players.push(createBlankPlayer());
+        renderPlayers();
+      });
+
+      document.getElementById('score-game').addEventListener('click', scoreGame);
+      renderPlayers();
+      scoreGame();
+    </script>
+  </body>
+</html>

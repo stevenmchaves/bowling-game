@@ -48,6 +48,7 @@ pytest tests/e2e/test_main.py
 ```
 Each test case name is self explainatory.
 
+### Command-line app
 To execute the actual program, it can be executed by entering: `python main.py`
 at the root directory.
 At the "Enter the bowling frames JSON:" prompt, the expected format is:
@@ -56,7 +57,7 @@ At the "Enter the bowling frames JSON:" prompt, the expected format is:
 ```
 
 The output will look something like the following:
-```
+``` 
 
 ====================================================================
  FRAME:   1     2     3     4     5     6     7     8     9     10
@@ -67,6 +68,13 @@ The output will look something like the following:
 ====================================================================
 
 ```
+
+### Browser frontend
+A browser-based frontend is also available. Start the local server with:
+```
+python frontend_server.py
+```
+Then open http://127.0.0.1:8000 in your browser and enter scores per frame. Use `X` for strikes, `/` for spares, and digits `0-9` for open rolls.
 
 There are 4 possible exit codes:
 1) 0 - successful execution

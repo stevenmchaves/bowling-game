@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bowling Game FastAPI</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --accent: #1b4d9b;
+        --border: #d8dee7;
+        --muted: #6b7280;
+        --danger: #b91c1c;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(180deg, #edf3ff 0%, var(--bg) 100%); color: #1f2937; }
+      .page { max-width: 1200px; margin: 40px auto; padding: 0 18px; }
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08); padding: 24px; }
+      h1 { margin: 0 0 8px; color: var(--accent); }
+      .subtitle { margin: 0 0 18px; color: var(--muted); }
+      .frame-grid { display: grid; grid-template-columns: repeat(10, minmax(70px, 1fr)); gap: 12px; margin-bottom: 18px; }
+      .frame-card { background: #eaf2ff; border: 1px solid #dfe7f5; border-radius: 10px; padding: 10px; }
+      .frame-label { display: block; font-size: 0.8rem; margin-bottom: 8px; font-weight: 700; color: var(--accent); }
+      .roll-row { display: flex; gap: 8px; }
+      .roll-input { width: 100%; border: 1px solid #d3dbe7; border-radius: 6px; padding: 8px 6px; text-align: center; }
+      .message { min-height: 22px; color: var(--danger); margin-bottom: 16px; font-weight: 700; }
+      .scoreboard { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+      .scoreboard-header, .scoreboard-row { display: grid; grid-template-columns: repeat(10, minmax(70px, 1fr)); }
+      .scoreboard-header { background: #2d3748; color: white; }
+      .cell { display: flex; min-height: 52px; align-items: center; justify-content: center; border-right: 1px solid var(--border); padding: 10px 6px; text-align: center; }
+      .score-value { color: var(--accent); font-weight: 700; }
+      .scoreboard-header .cell:last-child, .scoreboard-row .cell:last-child { border-right: none; }
+      .total-box { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; background: #f3f4f6; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-weight: 700; font-size: 1.1rem; }
+      .total-box strong { font-size: 1.5rem; color: var(--accent); }
+      @media (max-width: 900px) { .frame-grid, .scoreboard-header, .scoreboard-row { grid-template-columns: repeat(5, minmax(90px, 1fr)); } }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="panel">
+        <h1>Bowling Game</h1>
+        <p class="subtitle">Edit the frames below and the score updates automatically.</p>
+
+        <div id="frames" class="frame-grid"></div>
+        <div id="message" class="message" aria-live="polite"></div>
+
+        <div class="scoreboard" aria-live="polite">
+          <div id="frame-header" class="scoreboard-header"></div>
+          <div id="rolls-row" class="scoreboard-row"></div>
+          <div id="scores-row" class="scoreboard-row"></div>
+        </div>
+
+        <div class="total-box">
+          <span>Total score</span>
+          <strong id="total-score">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const defaultFrames = [
+        ['8', '/'], ['5', '4'], ['9', '0'], ['X'], ['X'], ['5', '/'], ['5', '3'], ['6', '3'], ['9', '/'], ['9', '/', 'X']
+      ];
+
+      const framesEl = document.getElementById('frames');
+      const messageEl = document.getElementById('message');
+      const frameHeader = document.getElementById('frame-header');
+      const rollsRow = document.getElementById('rolls-row');
+      const scoresRow = document.getElementById('scores-row');
+      const totalScore = document.getElementById('total-score');
+
+      function normalizeToken(value) {
+        return String(value ?? '').trim().toUpperCase().replace(/[^0-9X/]/g, '').slice(0, 1);
+      }
+
+      function buildInputs() {
+        framesEl.innerHTML = '';
+        defaultFrames.forEach((frame, frameIndex) => {
+          const card = document.createElement('div');
+          card.className = 'frame-card';
+
+          const label = document.createElement('label');
+          label.className = 'frame-label';
+          label.textContent = `Frame ${frameIndex + 1}`;
+
+          const row = document.createElement('div');
+          row.className = 'roll-row';
+
+          const maxRolls = frameIndex === 9 ? 3 : 2;
+          for (let i = 0; i < maxRolls; i += 1) {
+            const input = document.createElement('input');
+            input.className = 'roll-input';
+            input.maxLength = 1;
+            input.value = frame[i] ?? '';
+            input.placeholder = i === 0 ? 'roll' : '';
+            input.addEventListener('input', (event) => {
+              event.target.value = normalizeToken(event.target.value);
+              updateBoard();
+            });
+            row.appendChild(input);
+          }
+
+          card.appendChild(label);
+          card.appendChild(row);
+          framesEl.appendChild(card);
+        });
+      }
+
+      function readFrames() {
+        return [...document.querySelectorAll('.frame-card')].map((card) =>
+          [...card.querySelectorAll('.roll-input')].map((input) => normalizeToken(input.value)).filter(Boolean),
+        );
+      }
+
+      async function updateBoard() {
+        const frames = readFrames();
+        try {
+          const response = await fetch('/api/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ frames }),
+          });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || 'Invalid score data.');
+          }
+
+          messageEl.textContent = '';
+          frameHeader.innerHTML = '';
+          rollsRow.innerHTML = '';
+          scoresRow.innerHTML = '';
+
+          for (let i = 0; i < 10; i += 1) {
+            const headerCell = document.createElement('div');
+            headerCell.className = 'cell';
+            headerCell.textContent = i + 1;
+            frameHeader.appendChild(headerCell);
+
+            const rollCell = document.createElement('div');
+            rollCell.className = 'cell';
+            rollCell.textContent = (payload.display_frames[i] || []).join(' ') || '—';
+            rollsRow.appendChild(rollCell);
+
+            const scoreCell = document.createElement('div');
+            scoreCell.className = 'cell score-value';
+            scoreCell.textContent = payload.cumulative_scores[i] ?? '';
+            scoresRow.appendChild(scoreCell);
+          }
+
+          totalScore.textContent = String(payload.score || 0);
+        } catch (error) {
+          messageEl.textContent = error.message;
+        }
+      }
+
+      buildInputs();
+      updateBoard();
+    </script>
+  </body>
+</html>

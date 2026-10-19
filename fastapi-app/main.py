@@ -30,14 +30,31 @@ app = FastAPI(title="Bowling Game FastAPI")
 STATIC_DIR = APP_DIR / "static"
 
 
-class ScoreRequest(BaseModel):
+class PlayerScoreRequest(BaseModel):
+    name: str | None = None
     frames: list[list[str]]
+
+
+class ScoreRequest(BaseModel):
+    frames: list[list[str]] | None = None
+    players: list[PlayerScoreRequest] | None = None
 
 
 class CoachRequest(BaseModel):
     question: str
     frames: list[list[str]]
     score: int
+
+
+def _score_frames(frames: list[list[str]]) -> dict:
+    game = game_pipeline(json.dumps(frames))
+    board = game.get_scoreboard_data()
+    return {
+        "score": game.score(),
+        "cumulative_scores": board["cumulative_scores"],
+        "display_frames": board["display_frames"],
+        "frames": game.raw_frames,
+    }
 
 
 @app.get("/health")
@@ -58,14 +75,23 @@ def index_html() -> FileResponse:
 @app.post("/api/score")
 def score_game(payload: ScoreRequest) -> dict:
     try:
-        game = game_pipeline(json.dumps(payload.frames))
-        board = game.get_scoreboard_data()
-        return {
-            "score": game.score(),
-            "cumulative_scores": board["cumulative_scores"],
-            "display_frames": board["display_frames"],
-            "frames": game.raw_frames,
-        }
+        if payload.players is not None:
+            if not payload.players:
+                raise HTTPException(status_code=400, detail="Request body must include a non-empty 'players' list.")
+            results = []
+            for index, player in enumerate(payload.players, start=1):
+                name = (player.name or "").strip() or f"Player {index}"
+                try:
+                    results.append({"name": name, **_score_frames(player.frames)})
+                except Exception as exc:
+                    raise HTTPException(status_code=400, detail=f"Player '{name}': {exc}") from exc
+            return {"players": results}
+
+        if payload.frames is None:
+            raise HTTPException(status_code=400, detail="Request body must include a 'frames' list or a 'players' list.")
+        return _score_frames(payload.frames)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

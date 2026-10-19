@@ -8,9 +8,13 @@ version = "1.0.0"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    { name = "Steven Chaves", email = "stevenmchaves@gmail.com" }
+    { name = "Steven Chaves", email = "steven.chaves@gmail.com" }
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "openai>=1.99.0",
+]
 
 [project.optional-dependencies]
 dev = [

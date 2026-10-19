@@ -122,6 +122,12 @@ TOOLS = [
 
 
 def coach_response(question: str, frames: list[list[str]], score: int) -> str:
+    # A 300 is a perfect game; never give generic spare-conversion advice for it.
+    if score == 300:
+        analysis = analyze_bowling_game(frames)
+        if analysis.get("valid") and analysis.get("open_frames") == 0:
+            return "A perfect 300 game—congratulations! You struck in every frame, including all three rolls in the 10th. That is the highest possible score. Keep trusting the same repeatable approach."
+
     api_key = os.getenv("AI_GATEWAY_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:
         analysis = analyze_bowling_game(frames)

@@ -67,11 +67,12 @@ def analyze_bowling_game(frames: list[list[str]]) -> dict[str, Any]:
                     if first < 10 and second > 0 and first + second < 10:
                         missed_spare_opportunities += 1
             else:
-                if frame[0] == "X":
-                    strikes += 1
-                elif len(frame) >= 2 and frame[1] == "/":
+                # In the 10th frame, every X is a strike roll, including a fill ball
+                # after a spare or after a strike on the first ball.
+                strikes += sum(1 for roll in frame if roll == "X")
+                if frame[0] != "X" and len(frame) >= 2 and frame[1] == "/":
                     spares += 1
-                elif len(frame) >= 2:
+                elif frame[0] != "X" and len(frame) >= 2:
                     second = _roll_value(frame[1], first)
                     if first + second < 10:
                         opens += 1

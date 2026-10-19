@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -7,14 +8,26 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+APP_DIR = Path(__file__).resolve().parent
+for path in (ROOT / "src", ROOT, APP_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
-from main import game_pipeline
+# Load the repository's root main.py by file path under a unique module name.
+# This avoids importing this FastAPI file recursively as module `main`.
+ROOT_MAIN = ROOT / "main.py"
+spec = importlib.util.spec_from_file_location("bowling_game_cli_main", ROOT_MAIN)
+if spec is None or spec.loader is None:
+    raise ImportError(f"Unable to load bowling game pipeline from {ROOT_MAIN}")
+root_main = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = root_main
+spec.loader.exec_module(root_main)
+game_pipeline = root_main.game_pipeline
+
 from coach import coach_response
 
 app = FastAPI(title="Bowling Game FastAPI")
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+STATIC_DIR = APP_DIR / "static"
 
 
 class ScoreRequest(BaseModel):

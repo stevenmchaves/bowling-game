@@ -60,8 +60,11 @@ def test_open_frames_report_spare_shooting_opportunity(monkeypatch):
 def test_fallback_uses_correct_singular_grammar(monkeypatch):
     monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    frames = [["X"] for _ in range(9)] + [["X", "X", "X"]]
+    frames = [["X"], ["5", "/"]] + [["9", "0"] for _ in range(8)]
 
-    answer = coach_response("How did I do?", frames, 300)
+    answer = coach_response("How did I do?", frames, 100)
 
-    assert "1 strike" not in answer  # perfect-game response is special-cased
+    assert "1 strike," in answer
+    assert "1 spare," in answer
+    assert "8 open frames" in answer
+    assert "strike frame(s)" not in answer
